@@ -1,0 +1,39 @@
+#!/bin/bash
+#*********************************************************************************#
+# Copyright (C) 2019, Xunta de Galicia for Consolidacion Software Abalar          #
+# Project <software.libre@edu.xunta.es>                                           #
+# Author: Alfonso Bilbao Velez <alfonso.ernesto.bilbao.velez.ocampo@everis.com>   #
+# developed by EVERIS S.L.U.                                                      #
+# Name: cuentaatras.sh                                                            #
+# Description: cuenta atras para el apagado del equipo.                           #
+# Nota: Herramienta derivada de la desarrollada para Vitalinux.                   #
+#*********************************************************************************#
+# Display.
+export DISPLAY=:0.0
+
+# Variable auxiliar.
+#. /tmp/sesion
+
+# Bucle.
+for i in {1..100}; do 
+   echo "$i" 
+   sleep 0.2
+
+# Mensaje a usuario.
+done | zenity --progress \
+          --window-icon=/usr/share/icons/hicolor/256x256/devices/auto_apagado_abalar.png \
+	  --width=300 \
+	  --height=100 \
+          --title "Apagado do equipo." \
+          --text " O teu sistema apagarase en 20sg. \n <b>PARA ABORTAR, CLICK EN CANCELAR!</b> " \
+          --percentage=0 \
+          --auto-close
+
+# Abort.
+if test $? -ne 0 ; then
+  zenity --warning --text="Cancelado polo/a usuario/a!" --width=300 --height=100
+  exit 0
+fi
+
+# Shutdown
+sudo /sbin/init 0
