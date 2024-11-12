@@ -1,0 +1,72 @@
+#!/bin/bash
+#*********************************************************************************#
+# Copyright (C) 2019, Xunta de Galicia for Consolidacion Software Abalar          #
+# Project <software.libre@edu.xunta.es>                                           #
+# Author: Alfonso Bilbao Velez <alfonso.ernesto.bilbao.velez.ocampo@everis.com>   #
+# developed by EVERIS S.L.U.                                                      #
+# Name: programar_apagado_diario.sh                                               #
+# Description: Programador de hora y minutos diarios para el apagado automático   #
+# Derivado de la herramienta desarrollada para Vitalinux.                         #
+#*********************************************************************************#
+# Usuario.
+USER=$(whoami)
+
+# Tienes permisos.
+if test $USER = "root"; then
+	#Comprobamos las horas de apagado ya programadas:
+	if cat /etc/cron.d/auto_apagado | grep -v "^#" | grep "^.*cuentaatras" &> /dev/null ; then
+		# Programado previo.
+		cat /etc/cron.d/auto_apagado \
+			| grep -v "^#" \
+			| grep "^.*cuentaatras" \
+			| awk -F " " '{ print $2 ":" $1}' > /tmp/aux-comprobar-apagado
+		# Mensaje.
+		TEXTO="\n Xa hai programadas as seguintes horas de apagado: \n <b>$(cat /tmp/aux-comprobar-apagado)</b> \n Indica a continuación a hora de apagado desexada, e se queres manter as horas xa programadas: \n"
+	else
+		# Mensaje.
+		TEXTO="\n Non hai ningunha hora de apagado programada. \n Indica a hora de apagado desexada: \n"
+	fi
+	# Reprogramar nuevo apagado. 
+	RES=$(yad --title="Editor de apagado" --center --title "Programar Apagado" \
+		  --width="500" \
+		  --window-icon="shutdown" \
+		  --text-align center \
+		  --text="$TEXTO" \
+		  --form --field="Hora:NUM" 0!0..23!1  --field="Minutos:NUM" 0!0..59!5 \
+		  --field="¿Manter as horas de apagado xa programadas?:CHK" TRUE \
+		  --button="gtk-ok:0" --button="Cancelar:1")
+
+	if [ "$?" = "0" ]; then
+		HORA=$(echo "$RES" | cut -d"|" -f1 | cut -d"," -f1)
+		MINUTOS=$(echo "$RES" | cut -d"|" -f2 | cut -d"," -f1)
+		MANTENERHORASPROGRAMADAS=$(echo "$RES" | cut -d"|" -f3 | cut -d"," -f1)
+		USERS=usuario
+				
+		for USUARIO in $USERS; do
+			if test -f /var/spool/cron/crontabs/$USUARIO ; then
+				chown $USUARIO /var/spool/cron/crontabs/$USUARIO
+				chmod 600 /var/spool/cron/crontabs/$USUARIO
+			fi
+	        done
+
+		if test "$MANTENERHORASPROGRAMADAS" == "TRUE" ; then
+			# Mantener horas programadas previamente sin repetir las mismas horas.
+			#echo "$MINUTOS $HORA * * * root export DISPLAY=:0 && su usuario -c 'sudo /opt/auto_apagado/bin/cuentaatras'" >> /etc/cron.d/auto_apagado
+			grep -F "$MINUTOS $HORA * * * usuario /opt/auto_apagado/bin/cuentaatras" /etc/cron.d/auto_apagado||
+			echo "$MINUTOS $HORA * * * usuario /opt/auto_apagado/bin/cuentaatras" >> /etc/cron.d/auto_apagado
+		else
+			# Eliminar horas programadas previamente.
+			#echo "$MINUTOS $HORA * * * root export DISPLAY=:0 && su usuario -c 'sudo /opt/auto_apagado/bin/cuentaatras'" > /etc/cron.d/auto_apagado
+			echo "$MINUTOS $HORA * * * usuario /opt/auto_apagado/bin/cuentaatras" > /etc/cron.d/auto_apagado
+		fi
+	fi
+	bash /opt/auto_apagado/bin/comprobar_horas_apagado
+
+else
+	# Sin permisos de ejecucion.
+	yad --title "Programar Apagado" --info --text "No tes permisos para executar o programa." \
+	    --window-icon="shutdown" \
+	    --width="400" \
+	    --height="100" \
+	    --center --justify="center" --text-align="center"
+fi

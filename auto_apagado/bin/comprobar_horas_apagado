@@ -1,0 +1,39 @@
+#!/bin/bash
+#*********************************************************************************#
+# Copyright (C) 2019, Xunta de Galicia for Consolidacion Software Abalar          #
+# Project <software.libre@edu.xunta.es>                                           #
+# Author: Alfonso Bilbao Velez <alfonso.ernesto.bilbao.velez.ocampo@everis.com>   #
+# developed by EVERIS S.L.U.                                                      #
+# Name: comprobar_horas_apagado.sh                                                #
+# Description:  script que informa o usuario das horas de apagado configuradas.   #
+# Nota: Herramienta derivada de la desarrollada para Vitalinux.                   #
+#*********************************************************************************#
+# Check file.
+if test -f /etc/cron.d/auto_apagado ; then
+	# No hay nada programado.
+	if ! test $(cat /etc/cron.d/auto_apagado \
+		| grep -v "^#" \
+		| grep "^.*cuentaatras" | wc -l | tee /tmp/nlineas) -ge 1 ; then
+		TEXTO="<b>Non hai programado ningún apagado</b>"
+	else
+	# Imprimir horario programado.
+		cat /etc/cron.d/auto_apagado \
+			| grep -v "^#" \
+			| grep "^.*cuentaatras" \
+			| awk -F " " '{ print $2 ":" $1}' > /tmp/aux-comprobar-apagado
+		TEXTO="<b>$(cat /tmp/aux-comprobar-apagado)</b>"
+	fi
+	# Box.
+	yad --title="Horas de apagado programadas." \
+            --image "shutdown" \
+            --info --text "As horas de apagado programadas son: \n $TEXTO" \
+	    --center \
+            --window-icon=/usr/share/icons/hicolor/256x256/devices/auto_apagado_abalar.png \
+            --width="350" \
+	    --height="100" \
+	    --text-align="center" \
+            --button="gtk-ok:0" \
+	    --button="Programar Novo Apagado:1"
+
+	[ "$?" = 1 ] && bash /opt/auto_apagado/bin/programar_apagado_diario
+fi

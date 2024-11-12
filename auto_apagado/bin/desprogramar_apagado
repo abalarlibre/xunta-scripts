@@ -1,0 +1,31 @@
+#!/bin/bash
+#*********************************************************************************#
+# Copyright (C) 2019, Xunta de Galicia for Consolidacion Software Abalar          #
+# Project <software.libre@edu.xunta.es>                                           #
+# Author: Alfonso Bilbao Velez <alfonso.ernesto.bilbao.velez.ocampo@everis.com>   #
+# developed by EVERIS S.L.U.                                                      #
+# Name: desprogramar_apagado.sh                                                   #
+# Description: Herramienta para desrogramar el apagado automático.                #
+# Nota: Derivado de la herrameinta hecha para Vitalinux (by Arturo Martín Romero).#
+#*********************************************************************************#
+# User.
+USER=$(whoami)
+
+# If root.
+if test $USER = "root"; then
+	# Mensaje usuario.
+	if zenity --question --text "¿Desexa desactivar o apagado automático?" ; then
+		if test -f /etc/cron.d/auto_apagado ; then
+			echo "#Autoapagado Desprogramado." > /etc/cron.d/auto_apagado
+			exit 0
+		fi
+	fi
+else
+	# Sin permisos.
+	yad --title "Desprogramar apagado" \
+	    --info --text " Non tes permisos para executar este programa." \
+	    --window-icon="shutdown" \
+            --width="400" \
+	    --height="100" \
+	    --center --justify="center" --text-align="center"
+fi
